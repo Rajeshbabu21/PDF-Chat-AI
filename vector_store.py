@@ -1,5 +1,5 @@
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import tempfile
 import os
 import streamlit as st
@@ -7,13 +7,19 @@ import streamlit as st
 class VectorStore:
     def __init__(self):
         """
-        Initialize vector store with HuggingFace embeddings.
+        Initialize vector store with Google Gemini embeddings.
         """
         try:
-            # Use a lightweight embedding model that works well for document search
-            self.embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={'device': 'cpu'}
+            # Get Gemini API key from environment
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY not found in environment variables")
+            
+            # Use Google Gemini embeddings for document search
+            self.embeddings = GoogleGenerativeAIEmbeddings(
+                model="models/gemini-embedding-001",
+                google_api_key=api_key,
+                task_type="retrieval_document"
             )
         except Exception as e:
             raise Exception(f"Error initializing embeddings: {str(e)}")
