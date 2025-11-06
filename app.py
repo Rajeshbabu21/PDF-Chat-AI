@@ -5,6 +5,55 @@ from vector_store import VectorStore
 from chat_handler import ChatHandler
 from auth import create_user, verify_user
 from PIL import Image
+import json
+from pathlib import Path
+
+
+
+
+# Simple persistent current user store (local file). This keeps a single
+# logged-in user for local/dev use so refreshing the Streamlit page
+# doesn't immediately log the user out. Not secure for production.
+_STATE_FILE = Path(__file__).parent / "current_user.json"
+
+def save_current_user(email: str):
+    try:
+        _STATE_FILE.write_text(json.dumps({"user": email}))
+    except Exception:
+        pass
+
+def load_current_user():
+    try:
+        if _STATE_FILE.exists():
+            data = json.loads(_STATE_FILE.read_text())
+            return data.get("user")
+    except Exception:
+        pass
+    return None
+
+def clear_current_user():
+    try:
+        if _STATE_FILE.exists():
+            _STATE_FILE.unlink()
+    except Exception:
+        pass
+
+# Browser-query-param persistence (per-tab, survives refresh). This is
+# a simple, dependency-free way to persist which user is signed-in in the
+# browser session. It's visible in the URL and not secure for production.
+def set_query_user(email: str):
+    try:
+        # Use the supported API: assign to `st.query_params` to set params
+        st.query_params = {"user": email}
+    except Exception:
+        pass
+
+def clear_query_user():
+    try:
+        # Clear all query params by assigning an empty dict
+        st.query_params = {}
+    except Exception:
+        pass
 
 # Initialize session state
 if "messages" not in st.session_state:
@@ -14,7 +63,15 @@ if "vector_store" not in st.session_state:
 if "uploaded_files" not in st.session_state:
     st.session_state.uploaded_files = []
 if "user" not in st.session_state:
-    st.session_state.user = None
+    # Try to restore a persisted user from query params first (per-tab),
+    # then fall back to the local file.
+    try:
+        params = st.query_params
+        q_user = params.get("user", [None])[0]
+    except Exception:
+        q_user = None
+
+    st.session_state.user = q_user or load_current_user()
 
 
 def show_snackbar(message: str, type: str = "info", duration: int = 3000):
@@ -45,7 +102,6 @@ def show_snackbar(message: str, type: str = "info", duration: int = 3000):
 
 
 def show_login_screen():
-    # st.title("🔐 Login")
     st.markdown(
         """
         <h1 style='display: flex; align-items: center; justify-content: center; gap: 10px;'>
@@ -66,6 +122,9 @@ def show_login_screen():
             if submitted:
                 if verify_user(email, password):
                     st.session_state.user = email
+                    # persist current user so refresh doesn't log out
+                    save_current_user(email)
+                    set_query_user(email)
                     st.session_state.page = "home"
                     st.success("Logged in")
                     st.rerun()
@@ -105,6 +164,9 @@ def show_signup_screen():
                     ok, msg = create_user(email, password)
                     if ok:
                         st.session_state.user = email
+                        # persist current user so refresh doesn't log out
+                        save_current_user(email)
+                        set_query_user(email)
                         st.session_state.page = "home"
                         st.success(msg)
                         st.rerun()
@@ -148,6 +210,9 @@ def main():
                 st.session_state.page = "home"
                 st.rerun()
             if st.button("Logout", key="logout"):
+                # clear persisted user on logout
+                clear_current_user()
+                clear_query_user()
                 for key in ["user", "messages", "vector_store", "uploaded_files"]:
                     if key in st.session_state:
                         del st.session_state[key]
@@ -183,16 +248,15 @@ def main():
     
     # Sidebar for file upload
     with st.sidebar:
-        # st.header("📁 Upload Documents")
-        st.markdown(
-            """
-            <h2 style='display: flex; align-items: center; justify-content: start; gap: 10px;'>
-                <i class="fa-solid fa-folder" style="font-size: 32px; color: white;"></i>
-                Upload Documents
-            </h2>
-            """,
-            unsafe_allow_html=True
-        )
+        # st.header("Upload Documents" ,icon = ":materila/mailbox_with_mail:")
+        st.markdown("""
+    <h2 style='display: flex; align-items: center; gap: 10px;'>
+        <span class="material-symbols-outlined" style="font-size: 26px;">mail</span>
+        Upload Documents
+    </h2>
+
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+""", unsafe_allow_html=True)
         
         uploaded_files = st.file_uploader(
             "Choose files (PDF only will be processed)",
@@ -253,10 +317,19 @@ def main():
 
                                 # Display success message
                                 total_chunks = len(all_documents)
-                                st.success(f"✅ Successfully processed {len(valid_files)} PDF(s) into {total_chunks} chunks")
+                                st.success(f"Successfully processed {len(valid_files)} PDF(s) into {total_chunks} chunks",icon=":material/check:")
 
                                 # Show file details
-                                st.subheader("📄 Processed Files:")
+                                # st.subheader("📄 Processed Files:")
+                                st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+<div style="display:flex; align-items:center; gap:8px;">
+  <span class="material-symbols-outlined" style="font-size:26px;">
+    picture_as_pdf
+  </span>
+  <h3 style="margin:0;">Processed Files:</h3>
+</div>
+""", unsafe_allow_html=True)
                                 for file_name, chunk_count in file_sources.items():
                                     st.write(f"• {file_name}: {chunk_count} chunks")
                             else:
@@ -267,7 +340,7 @@ def main():
                             st.session_state.vector_store = None
         
         
-        if st.button("Clear Chat History", key="clear_chat"):
+        if st.button("Clear Chat History", key="clear_chat",icon=":material/delete:"):
             if "messages" in st.session_state:
                 del st.session_state.messages
             st.rerun()
@@ -303,12 +376,14 @@ def main():
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
             if "sources" in message and message["sources"]:
-                with st.expander("📖 Sources"):
+                with st.expander("Sources",icon=":material/search:"):
                     for source in message["sources"]:
                         st.write(f"• **{source['filename']}** (Page {source.get('page', 'Unknown')})")
     
     # Chat input
+    
     if prompt := st.chat_input("Ask a question about your documents..."):
+
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
@@ -327,7 +402,7 @@ def main():
                     
                     # Display sources if available
                     if sources:
-                        with st.expander("📖 Sources"):
+                        with st.expander("Sources",icon=":material/search:"):
                             for source in sources:
                                 st.write(f"• **{source['filename']}** (Page {source.get('page', 'Unknown')})")
                     
