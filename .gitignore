@@ -22,3 +22,5 @@ uv.lock
 # REPLIT environment files (if using Replit)
 .local/
 .replit
+
+dd.txt

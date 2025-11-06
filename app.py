@@ -248,7 +248,6 @@ def main():
     
     # Sidebar for file upload
     with st.sidebar:
-        # st.header("Upload Documents" ,icon = ":materila/mailbox_with_mail:")
         st.markdown("""
     <h2 style='display: flex; align-items: center; gap: 10px;'>
         <span class="material-symbols-outlined" style="font-size: 26px;">mail</span>
@@ -265,7 +264,6 @@ def main():
         )
 
         if uploaded_files:
-            # Validate types ourselves so we can show a nicer snackbar
             valid_files = []
             invalid_files = []
             for f in uploaded_files:
@@ -281,7 +279,6 @@ def main():
                 st.warning(f"Ignored unsupported files: {', '.join(invalid_files)}")
 
             if not valid_files:
-                # Nothing to do when only invalid files were uploaded
                 pass
             else:
                 # Check if valid files have changed
@@ -318,7 +315,6 @@ def main():
                                 # Display success message
                                 total_chunks = len(all_documents)
                                 st.success(f"Successfully processed {len(valid_files)} PDF(s) into {total_chunks} chunks",icon=":material/check:")
-
                                 # Show file details
                                 # st.subheader("📄 Processed Files:")
                                 st.markdown("""
@@ -338,15 +334,12 @@ def main():
                         except Exception as e:
                             st.error(f"❌ Error processing PDFs: {str(e)}")
                             st.session_state.vector_store = None
-        
-        
+
         if st.button("Clear Chat History", key="clear_chat",icon=":material/delete:"):
             if "messages" in st.session_state:
                 del st.session_state.messages
             st.rerun()
     
-    # Main chat interface
-    # st.header("💬 Chat with Your Documents")
     st.markdown(
         """
         <h3 style='display: flex; align-items: center; justify-content: start; gap: 10px; margin-bottom: 10px;'>
@@ -380,8 +373,7 @@ def main():
                     for source in message["sources"]:
                         st.write(f"• **{source['filename']}** (Page {source.get('page', 'Unknown')})")
     
-    # Chat input
-    
+
     if prompt := st.chat_input("Ask a question about your documents..."):
 
         # Add user message to chat history
