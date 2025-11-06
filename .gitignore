@@ -1,0 +1,24 @@
+.venv/
+env/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Streamlit local state
+.streamlit/
+
+# User secrets or authentication data
+users.json
+
+# PDF or user-uploaded temp files (if any)
+*.txt  # if dd.txt is just a test file
+
+# Lock and dependency files (optional based on project workflow)
+uv.lock
+
+# REPLIT environment files (if using Replit)
+.local/
+.replit

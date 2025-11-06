@@ -1,6 +1,7 @@
 import os
-from google import genai
-from google.genai import types
+from google.ai import generativelanguage_v1beta as genai
+from google.ai.generativelanguage_v1beta import types
+from google.api_core import client_options as client_options_lib
 from vector_store import VectorStore
 
 class ChatHandler:
@@ -14,12 +15,14 @@ class ChatHandler:
         self.vectorstore = vectorstore
         self.vector_store_helper = VectorStore()
         
-        # Initialize Gemini AI client
+        # Initialize Gemini AI (Generative Language) client
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
-        
-        self.client = genai.Client(api_key=api_key)
+
+        # Use API key via client options
+        client_opts = client_options_lib.ClientOptions(api_key=api_key)
+        self.client = genai.GenerativeServiceClient(client_options=client_opts)
     
     def get_response(self, query, k=4):
         """
@@ -59,16 +62,17 @@ class ChatHandler:
                 if source_info not in sources:
                     sources.append(source_info)
             
-            # Create prompt for Gemini
-            system_instruction = """You are a helpful AI assistant that answers questions based solely on the provided document content. 
-
-Instructions:
-1. Answer the question using ONLY the information provided in the context below
-2. Be concise but comprehensive in your response
-3. If the context doesn't contain enough information to answer the question, say so clearly
-4. Do not make up information that isn't in the provided context
-5. Use a friendly and professional tone
-6. Structure your answer clearly with bullet points or numbered lists when appropriate"""
+            # Create prompt for Gemini (Generative Language)
+            system_instruction = types.Content(parts=[types.Part(text=(
+                "You are a helpful AI assistant that answers questions based solely on the provided document content.\n\n"
+                "Instructions:\n"
+                "1. Answer the question using ONLY the information provided in the context below\n"
+                "2. Be concise but comprehensive in your response\n"
+                "3. If the context doesn't contain enough information to answer the question, say so clearly\n"
+                "4. Do not make up information that isn't in the provided context\n"
+                "5. Use a friendly and professional tone\n"
+                "6. Structure your answer clearly with bullet points or numbered lists when appropriate"
+            ))])
 
             user_prompt = f"""Context from uploaded documents:
 {context}
@@ -77,26 +81,44 @@ Question: {query}
 
 Please provide a detailed answer based on the context above."""
 
-            # Generate response using Gemini
-            response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    types.Content(
-                        role="user", 
-                        parts=[types.Part(text=user_prompt)]
-                    )
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.1,  # Lower temperature for more consistent responses
-                    max_output_tokens=1000
-                )
+            user_content = types.Content(role="user", parts=[types.Part(text=user_prompt)])
+
+            # Build generation config
+            gen_config = types.GenerationConfig(
+                temperature=0.1,
+                max_output_tokens=1000,
             )
-            
-            if response.text:
-                return response.text.strip(), sources
-            else:
-                return "I apologize, but I couldn't generate a response. Please try rephrasing your question.", sources
+
+            # Normalize model name (GenerativeService expects model names like 'models/xyz')
+            model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+            if not model_name.startswith("models/"):
+                model_name = f"models/{model_name}"
+
+            # Build request
+            request = types.GenerateContentRequest(
+                model=model_name,
+                system_instruction=system_instruction,
+                contents=[user_content],
+                generation_config=gen_config,
+            )
+
+            # Call the GenerativeService API
+            response = self.client.generate_content(request=request)
+
+            # Extract text from the first candidate if present
+            if response and response.candidates:
+                candidate = response.candidates[0]
+                # Join any text parts from the candidate content
+                text_parts = []
+                if candidate.content and candidate.content.parts:
+                    for p in candidate.content.parts:
+                        if getattr(p, 'text', None):
+                            text_parts.append(p.text)
+                response_text = "\n".join(text_parts).strip()
+                if response_text:
+                    return response_text, sources
+
+            return "I apologize, but I couldn't generate a response. Please try rephrasing your question.", sources
                 
         except Exception as e:
             error_msg = f"Error generating response: {str(e)}"
@@ -148,15 +170,16 @@ Please provide a detailed answer based on the context above."""
                     sources.append(source_info)
             
             # Generate response using the context
-            system_instruction = """You are a helpful AI assistant that answers questions based solely on the provided document content. 
-
-Instructions:
-1. Answer the question using ONLY the information provided in the context below
-2. Be concise but comprehensive in your response
-3. If the context doesn't contain enough information to answer the question, say so clearly
-4. Do not make up information that isn't in the provided context
-5. Use a friendly and professional tone
-6. Structure your answer clearly with bullet points or numbered lists when appropriate"""
+            system_instruction = types.Content(parts=[types.Part(text=(
+                "You are a helpful AI assistant that answers questions based solely on the provided document content.\n\n"
+                "Instructions:\n"
+                "1. Answer the question using ONLY the information provided in the context below\n"
+                "2. Be concise but comprehensive in your response\n"
+                "3. If the context doesn't contain enough information to answer the question, say so clearly\n"
+                "4. Do not make up information that isn't in the provided context\n"
+                "5. Use a friendly and professional tone\n"
+                "6. Structure your answer clearly with bullet points or numbered lists when appropriate"
+            ))])
 
             user_prompt = f"""Context from uploaded documents:
 {context}
@@ -165,26 +188,44 @@ Question: {query}
 
 Please provide a detailed answer based on the context above."""
 
-            # Generate response using Gemini
-            response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    types.Content(
-                        role="user", 
-                        parts=[types.Part(text=user_prompt)]
-                    )
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.1,
-                    max_output_tokens=1000
-                )
+            user_content = types.Content(role="user", parts=[types.Part(text=user_prompt)])
+
+            # Build generation config
+            gen_config = types.GenerationConfig(
+                temperature=0.1,
+                max_output_tokens=1000,
             )
-            
-            if response.text:
-                return response.text.strip(), sources
-            else:
-                return "I apologize, but I couldn't generate a response. Please try rephrasing your question.", sources
+
+            # Normalize model name (GenerativeService expects model names like 'models/xyz')
+            model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+            if not model_name.startswith("models/"):
+                model_name = f"models/{model_name}"
+
+            # Build request
+            request = types.GenerateContentRequest(
+                model=model_name,
+                system_instruction=system_instruction,
+                contents=[user_content],
+                generation_config=gen_config,
+            )
+
+            # Call the GenerativeService API
+            response = self.client.generate_content(request=request)
+
+            # Extract text from the first candidate if present
+            if response and response.candidates:
+                candidate = response.candidates[0]
+                # Join any text parts from the candidate content
+                text_parts = []
+                if candidate.content and candidate.content.parts:
+                    for p in candidate.content.parts:
+                        if getattr(p, 'text', None):
+                            text_parts.append(p.text)
+                response_text = "\n".join(text_parts).strip()
+                if response_text:
+                    return response_text, sources
+
+            return "I apologize, but I couldn't generate a response. Please try rephrasing your question.", sources
                 
         except Exception as e:
             error_msg = f"Error generating response with scores: {str(e)}"

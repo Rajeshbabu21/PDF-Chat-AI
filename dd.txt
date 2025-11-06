@@ -1,0 +1,19 @@
+AIzaSyDvbIMxu6bp9Ixwpa9xXSqPT2e5yldZP7M
+
+AIzaSyDvbIMxu6bp9Ixwpa9xXSqPT2e5yldZP7M
+
+
+// to run with api key 
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; .\.venv\Scripts\Activate.ps1; $env:GEMINI_API_KEY = 'AIzaSyDvbIMxu6bp9Ixwpa9xXSqPT2e5yldZP7M'; streamlit run app.py --server.port 5000
+
+
+// to run simply 
+
+
+.\.venv\Scripts\Activate.ps1; streamlit run app.py --server.port 5000 --server.address 127.0.0.1
+
+
+// after error
+ GEMINI_API_KEY not found in environment variables. Please add your Gemini API key to continue.
+
+ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; .\.venv\Scripts\Activate.ps1; $env:GEMINI_API_KEY = 'AIzaSyDvbIMxu6bp9Ixwpa9xXSqPT2e5yldZP7M'; streamlit run app.py --server.port 5000 --server.address 127.0.0.1
