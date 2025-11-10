@@ -311,10 +311,10 @@ def main():
                                 for file_name, chunk_count in file_sources.items():
                                     st.write(f"• {file_name}: {chunk_count} chunks")
                             else:
-                                st.error("❌ No text could be extracted from the uploaded PDFs")
+                                st.error("No text could be extracted from the uploaded PDFs",icon=":material/dangerous:")
 
                         except Exception as e:
-                            st.error(f"❌ Error processing PDFs: {str(e)}")
+                            st.error(f"Error processing PDFs: {str(e)}",icon=":material/dangerous:")
                             st.session_state.vector_store = None
 
         if st.button("Clear Chat History", key="clear_chat",icon=":material/delete:"):
@@ -322,31 +322,20 @@ def main():
                 del st.session_state.messages
             st.rerun()
     
-    # st.markdown(
-    #     """
-    #     <h3 style='display: flex; align-items: center; justify-content: start; gap: 10px; margin-bottom: 10px;'>
-    #         <i class="fa-solid fa-comments" style="font-size: 36px; color: white;"></i>
-    #         Chat with Your Documents
-    #     </h3>
-    #     """,
-    #     unsafe_allow_html=True
-    # )  
-    # 
+    
     st.markdown("## :material/chat: Chat with Your Documents") 
     
     if not st.session_state.vector_store:
-        st.markdown("## :material/pan_tool_alt: Chat with Your Documents") 
+        # st.markdown("## :material/pan_tool_alt: Chat with Your Documents") 
+        st.markdown("""
+                    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<h6 style='display: flex; align-items: center; gap: 8px;'>
+<span class="material-icons" style="font-size:24px; vertical-align: middle;">pan_tool_alt</span>
+Please upload PDF files in the sidebar to start chatting!
+</h6>
+""", unsafe_allow_html=True)
 
-    #     st.markdown(
-    #     """
-    #      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    #     <h5 style='display: flex; align-items: center; justify-content: start; gap: 10px;'>
-    #         <i class="fa-solid fa-hand-point-up" style="font-size: 36px; color: white;"></i>
-    #          Please upload PDF files in the sidebar to start chatting!
-    #     </h5>
-    #     """,
-    #     unsafe_allow_html=True
-    # )   
+     
         return
     
     # Display chat messages
