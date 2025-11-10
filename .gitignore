@@ -23,5 +23,4 @@ uv.lock
 .local/
 .replit
 
-dd.txt
 .env
