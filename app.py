@@ -73,6 +73,7 @@ if "user" not in st.session_state:
 
 def show_snackbar(message: str, type: str = "info", duration: int = 3000):
         
+        
         color = {
                 "info": "#2b6cb0",
                 "success": "#2f855a",
