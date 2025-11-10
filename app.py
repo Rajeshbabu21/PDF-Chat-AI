@@ -164,7 +164,7 @@ def show_signup_screen():
                     ok, msg = create_user(email, password)
                     if ok:
                         st.session_state.user = email
-                        # persist current user so refresh doesn't log out
+                        
                         save_current_user(email)
                         set_query_user(email)
                         st.session_state.page = "home"
