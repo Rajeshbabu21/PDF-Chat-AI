@@ -7,6 +7,10 @@ from auth import create_user, verify_user
 from PIL import Image
 import json
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 
