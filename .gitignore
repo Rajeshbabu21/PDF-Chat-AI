@@ -14,7 +14,8 @@ __pycache__/
 users.json
 
 # PDF or user-uploaded temp files (if any)
-*.txt  # if dd.txt is just a test file
+*.txt  # Ignore all text files
+dd.txt # Explicitly ignore dd.txt as it contains sensitive API keys
 
 # Lock and dependency files (optional based on project workflow)
 uv.lock
@@ -22,5 +23,5 @@ uv.lock
 # REPLIT environment files (if using Replit)
 .local/
 .replit
-
+git rm --cached dd.txt
 .env
