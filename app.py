@@ -11,9 +11,6 @@ from pathlib import Path
 
 
 
-# Simple persistent current user store (local file). This keeps a single
-# logged-in user for local/dev use so refreshing the Streamlit page
-# doesn't immediately log the user out. Not secure for production.
 _STATE_FILE = Path(__file__).parent / "current_user.json"
 
 def save_current_user(email: str):
@@ -38,19 +35,17 @@ def clear_current_user():
     except Exception:
         pass
 
-# Browser-query-param persistence (per-tab, survives refresh). This is
-# a simple, dependency-free way to persist which user is signed-in in the
-# browser session. It's visible in the URL and not secure for production.
+
 def set_query_user(email: str):
     try:
-        # Use the supported API: assign to `st.query_params` to set params
+        
         st.query_params = {"user": email}
     except Exception:
         pass
 
 def clear_query_user():
     try:
-        # Clear all query params by assigning an empty dict
+        
         st.query_params = {}
     except Exception:
         pass
@@ -63,8 +58,7 @@ if "vector_store" not in st.session_state:
 if "uploaded_files" not in st.session_state:
     st.session_state.uploaded_files = []
 if "user" not in st.session_state:
-    # Try to restore a persisted user from query params first (per-tab),
-    # then fall back to the local file.
+    
     try:
         params = st.query_params
         q_user = params.get("user", [None])[0]
@@ -72,7 +66,6 @@ if "user" not in st.session_state:
         q_user = None
 
     st.session_state.user = q_user or load_current_user()
-
 
 def show_snackbar(message: str, type: str = "info", duration: int = 3000):
         
@@ -100,25 +93,23 @@ def show_snackbar(message: str, type: str = "info", duration: int = 3000):
         """
         st.markdown(html, unsafe_allow_html=True)
 
-
 def show_login_screen():
-    st.markdown(
-        """
-        <h1 style='display: flex; align-items: center; justify-content: center; gap: 10px;'>
-            <img src='https://cdn-icons-png.flaticon.com/512/3064/3064197.png' width='40' height='40'  style="filter: invert(1);">
-            Login
-        </h1>
-        """,
-        unsafe_allow_html=True
-    )   
+   
+    st.markdown("""
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<h2 style='text-align: center; color: white; display: flex; justify-content: center; align-items: center; gap: 8px;'>
+    <span class="material-icons" style="font-size:32px; color:white;">lock</span>
+    Login
+</h2>
+""", unsafe_allow_html=True)
 
     st.write("Please sign in to continue.")
     cols = st.columns([1, 2, 1])
     with cols[1]:
         with st.form("login_form_main"):
-            email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Login")
+            email = st.text_input("Email",icon=":material/email:")
+            password = st.text_input("Password", type="password",icon=":material/lock:")
+            submitted = st.form_submit_button("Login",icon=":material/login:")
             if submitted:
                 if verify_user(email, password):
                     st.session_state.user = email
@@ -131,30 +122,29 @@ def show_login_screen():
                 else:
                     st.error("Invalid username or password")
 
-        if st.button("Create an account", key="to_signup"):
+        if st.button("Create an account",icon=":material/add:", key="to_signup"):
             st.session_state.page = "signup"
             st.rerun()
 
-
 def show_signup_screen():
-    # st.title("📝 Signup")
-    st.markdown(
-        """
-        <h1 style='display: flex; align-items: center; justify-content: center; gap: 10px;'>
-            <i class="fa-solid fa-user-plus" style="font-size: 36px; color: white;"></i>
-            Signup
-        </h1>
-        """,
-        unsafe_allow_html=True
-    )   
+    
+    st.markdown("""
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<h2 style='text-align: center; color: white; display: flex; justify-content: center; align-items: center; gap: 8px;'>
+    <span class="material-icons" style="font-size:32px; color:white;">account_circle</span>
+    Signup
+</h2>
+""", unsafe_allow_html=True)
+
+       
     st.write("Create a new account")
     cols = st.columns([1, 2, 1])
     with cols[1]:
         with st.form("signup_form_main"):
-            email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            password2 = st.text_input("Confirm Password", type="password")
-            submitted = st.form_submit_button("Create account")
+            email = st.text_input("Email",icon=":material/email:")
+            password = st.text_input("Password", type="password",icon=":material/lock:")
+            password2 = st.text_input("Confirm Password", type="password",icon=":material/lock:")
+            submitted = st.form_submit_button("Create account",icon=":material/add:")
             if submitted:
                 if not email or not password:
                     st.error("Email and password required")
@@ -177,25 +167,17 @@ def show_signup_screen():
             st.session_state.page = "login"
             st.rerun()
 
-
 def main():
     
     st.set_page_config(
         page_title="INTELLIGENT PDF CHATBOT",
-        page_icon="📚",
+        page_icon="robot.png",
         # page_icon=,
         layout="wide"
     )
-    # st.title("📚 AI PDF Chatbot")
-    st.markdown(
-        """
-        <h1 style='display: flex; align-items: center; justify-content: start; gap: 10px;'>
-            <i class="fa-solid fa-robot" style="font-size: 36px; color: white;"></i>
-            INTELLIGENT PDF CHATBOT
-        </h1>
-        """,
-        unsafe_allow_html=True
-    )   
+    
+    st.markdown("## :material/robot_2: INTELLIGENT PDF CHATBOT")  
+     
     st.markdown("Upload PDF documents and ask questions based on their content!")
 
     # Simple router: pages = 'login', 'signup', 'home'
@@ -206,10 +188,10 @@ def main():
     with st.sidebar:
         if st.session_state.user:
             st.write(f"Signed in as **{st.session_state.user}**")
-            if st.button("Home", key="nav_home"):
+            if st.button("Home",icon=":material/home:", key="nav_home"):
                 st.session_state.page = "home"
                 st.rerun()
-            if st.button("Logout", key="logout"):
+            if st.button("Logout", icon=":material/logout:", key="logout"):
                 # clear persisted user on logout
                 clear_current_user()
                 clear_query_user()
@@ -219,10 +201,10 @@ def main():
                 st.session_state.page = "login"
                 st.rerun()
         else:
-            if st.button("Login", key="nav_login"):
+            if st.button("Login",icon=":material/login:", key="nav_login"):
                 st.session_state.page = "login"
                 st.rerun()
-            if st.button("Signup", key="nav_signup"):
+            if st.button("Signup", icon=":material/account_circle:",key="nav_signup"):
                 st.session_state.page = "signup"
                 st.rerun()
 
@@ -243,7 +225,7 @@ def main():
     # Check for Gemini API key
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     if not gemini_api_key:
-        st.error("⚠️ GEMINI_API_KEY not found in environment variables. Please add your Gemini API key to continue.")
+        st.error("GEMINI_API_KEY not found in environment variables. Please add your Gemini API key to continue.",icon=":material/warning:")
         st.stop()
     
     # Sidebar for file upload
@@ -316,7 +298,7 @@ def main():
                                 total_chunks = len(all_documents)
                                 st.success(f"Successfully processed {len(valid_files)} PDF(s) into {total_chunks} chunks",icon=":material/check:")
                                 # Show file details
-                                # st.subheader("📄 Processed Files:")
+                                
                                 st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
 <div style="display:flex; align-items:center; gap:8px;">
@@ -340,28 +322,31 @@ def main():
                 del st.session_state.messages
             st.rerun()
     
-    st.markdown(
-        """
-        <h3 style='display: flex; align-items: center; justify-content: start; gap: 10px; margin-bottom: 10px;'>
-            <i class="fa-solid fa-comments" style="font-size: 36px; color: white;"></i>
-            Chat with Your Documents
-        </h3>
-        """,
-        unsafe_allow_html=True
-    )   
+    # st.markdown(
+    #     """
+    #     <h3 style='display: flex; align-items: center; justify-content: start; gap: 10px; margin-bottom: 10px;'>
+    #         <i class="fa-solid fa-comments" style="font-size: 36px; color: white;"></i>
+    #         Chat with Your Documents
+    #     </h3>
+    #     """,
+    #     unsafe_allow_html=True
+    # )  
+    # 
+    st.markdown("## :material/chat: Chat with Your Documents") 
     
     if not st.session_state.vector_store:
-        
-        st.markdown(
-        """
-         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-        <h5 style='display: flex; align-items: center; justify-content: start; gap: 10px;'>
-            <i class="fa-solid fa-hand-point-up" style="font-size: 36px; color: white;"></i>
-             Please upload PDF files in the sidebar to start chatting!
-        </h5>
-        """,
-        unsafe_allow_html=True
-    )   
+        st.markdown("## :material/pan_tool_alt: Chat with Your Documents") 
+
+    #     st.markdown(
+    #     """
+    #      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    #     <h5 style='display: flex; align-items: center; justify-content: start; gap: 10px;'>
+    #         <i class="fa-solid fa-hand-point-up" style="font-size: 36px; color: white;"></i>
+    #          Please upload PDF files in the sidebar to start chatting!
+    #     </h5>
+    #     """,
+    #     unsafe_allow_html=True
+    # )   
         return
     
     # Display chat messages
